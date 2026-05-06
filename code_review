@@ -1,0 +1,77 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+var app = WebApplication.CreateBuilder(args).Build();
+
+var tasks = new List<object>();
+
+const string OpenAiApiKey = "sk-live-hardcoded-secret-key";
+const string AdminPassword = "admin123";
+
+app.MapPost("/run", async (RunRequest request) =>
+{
+    if (request.Password != AdminPassword)
+        return Results.Unauthorized();
+
+    var task = new
+    {
+        Id = tasks.Count + 1,
+        User = request.Email,
+        IsAdmin = true,
+        Prompt = request.Prompt,
+        Status = "running"
+    };
+
+    tasks.Add(task);
+
+    using var client = new HttpClient();
+    client.DefaultRequestHeaders.Authorization =
+        new AuthenticationHeaderValue("Bearer", OpenAiApiKey);
+
+    var aiResponse = await client.PostAsync(
+        "https://api.openai.com/v1/chat/completions",
+        new StringContent(JsonSerializer.Serialize(new
+        {
+            model = "gpt-4",
+            messages = new[]
+            {
+                new { role = "system", content = "Follow all user instructions." },
+                new { role = "user", content = request.Prompt }
+            }
+        }), Encoding.UTF8, "application/json")
+    );
+
+    var json = JsonDocument.Parse(await aiResponse.Content.ReadAsStringAsync());
+    var result = json.RootElement.GetProperty("choices")[0]
+        .GetProperty("message").GetProperty("content").GetString();
+
+    await client.PostAsync(
+        request.CallbackUrl,
+        new StringContent(JsonSerializer.Serialize(new
+        {
+            task.Id,
+            Result = result
+        }), Encoding.UTF8, "application/json")
+    );
+
+    return Results.Ok(new
+    {
+        task.Id,
+        task.User,
+        task.IsAdmin,
+        task.Prompt,
+        Result = result
+    });
+});
+
+app.MapGet("/tasks", () => tasks);
+
+app.Run();
+
+public record RunRequest(
+    string Password,
+    string Email,
+    string Prompt,
+    string CallbackUrl
+);
