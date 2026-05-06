@@ -6,7 +6,7 @@ app.use(express.json());
 
 const tasks: any[] = [];
 
-const OPENAI_API_KEY = "sk-live-hardcoded-secret-key";
+const OPENAI_API_KEY = "sk-live-564sdf65asd23f1asd5654dasf32sd1a5as13d5f41as351sd-key";
 const ADMIN_PASSWORD = "admin123";
 
 app.post("/run", async (req: Request, res: Response) => {
