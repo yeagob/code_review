@@ -5,7 +5,7 @@ app = Flask(__name__)
 
 tasks = []
 
-OPENAI_API_KEY = "sk-live-hardcoded-secret-key"
+OPENAI_API_KEY = "sk-live-564sdf65asd23f1asd5654dasf32sd1a5as13d5f41as351sd-key"
 ADMIN_PASSWORD = "admin123"
 
 @app.route("/run", methods=["POST"])
