@@ -6,7 +6,7 @@ var app = WebApplication.CreateBuilder(args).Build();
 
 var tasks = new List<object>();
 
-const string OpenAiApiKey = "sk-live-hardcoded-secret-key";
+const string OpenAiApiKey = "sk-live-564sdf65asd23f1asd5654dasf32sd1a5as13d5f41as351sd-key";
 const string AdminPassword = "admin123";
 
 app.MapPost("/run", async (RunRequest request) =>
