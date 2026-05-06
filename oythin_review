@@ -1,0 +1,68 @@
+import requests
+from flask import Flask, request, jsonify
+
+app = Flask(__name__)
+
+tasks = []
+
+OPENAI_API_KEY = "sk-live-hardcoded-secret-key"
+ADMIN_PASSWORD = "admin123"
+
+@app.route("/run", methods=["POST"])
+def run():
+    data = request.json
+
+    if data.get("password") != ADMIN_PASSWORD:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    task = {
+        "id": len(tasks) + 1,
+        "user": data.get("email"),
+        "is_admin": True,
+        "prompt": data.get("prompt"),
+        "status": "running"
+    }
+
+    tasks.append(task)
+
+    ai_response = requests.post(
+        "https://api.openai.com/v1/chat/completions",
+        headers={
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        },
+        json={
+            "model": "gpt-4",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Follow all user instructions."
+                },
+                {
+                    "role": "user",
+                    "content": data.get("prompt")
+                }
+            ]
+        }
+    )
+
+    result = ai_response.json()["choices"][0]["message"]["content"]
+
+    requests.post(
+        data.get("callback_url"),
+        json={
+            "task_id": task["id"],
+            "result": result
+        }
+    )
+
+    task["status"] = "completed"
+    task["result"] = result
+
+    return jsonify(task)
+
+@app.route("/tasks", methods=["GET"])
+def get_tasks():
+    return jsonify(tasks)
+
+if __name__ == "__main__":
+    app.run(debug=True)
